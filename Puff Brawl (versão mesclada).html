@@ -585,7 +585,77 @@ $('cfgb').onclick=()=>{ainit();$('menu').classList.add('off');$('set').classList
 applyCF();
 
 /* ================= STEP ================= */
-function step(){G.t++;
+function netSendState(){
+ const n=window.netPlayer;
+ if(!n||n.player!==1||!n.ws||n.ws.readyState!==1)return;
+
+ const players=F.map(p=>{
+  const q={...p};
+  q.on=PL.indexOf(p.on);
+  q.swBy=F.indexOf(p.swBy);
+  if(q.atk){
+   q.atk={...q.atk};
+   q.atk.v=F.indexOf(p.atk.v);
+  }
+  q.ai=null;
+  return q;
+ });
+
+ const projectiles=shots.map(s=>{
+  const q={...s};
+  q.o=F.indexOf(s.o);
+  delete q.end;
+  return q;
+ });
+
+ const state={
+  G:{
+   s:G.s,t:G.t,stg:G.stg,ice:G.ice,
+   shk:G.shk,bn:G.bn,cam:G.cam,mt:G.mt,
+   win:G.win,ec:G.ec,ic:G.ic
+  },
+  F:players,
+  PL,HZ,bo,mons,shots:projectiles,
+  pts,txts,GRV,HS
+ };
+
+ n.ws.send(JSON.stringify({
+  type:'state',
+  state
+ }));
+}
+
+function netApplyState(d){
+ if(!d)return;
+
+ G={...G,...d.G};
+ PL.splice(0,PL.length,...d.PL);
+ HZ=d.HZ;
+ GRV=d.GRV;
+ HS=d.HS;
+
+ F=d.F.map(p=>({
+  ...p,
+  on:null,
+  swBy:null,
+  atk:p.atk?{...p.atk,v:null}:null
+ }));
+
+ F.forEach((p,i)=>{
+  const src=d.F[i];
+  p.on=src.on>=0?PL[src.on]:null;
+  p.swBy=src.swBy>=0?F[src.swBy]:null;
+  if(p.atk&&src.atk)
+   p.atk.v=src.atk.v>=0?F[src.atk.v]:null;
+ });
+
+ bo=d.bo;
+ mons=d.mons;
+ shots=d.shots.map(s=>({...s,o:s.o>=0?F[s.o]:null}));
+ pts=d.pts;
+ txts=d.txts;
+}
+ function step(){G.t++;
  if(MENUS[G.s]){demoT++;return}
  if(HS>0){HS--;return}
  if(G.bn){G.bn.a++;if(G.bn.a>G.bn.d)G.bn=null}
